@@ -49,7 +49,7 @@ uv run python src/data_agent_baseline/zz_agent_v2.py
 
 ### 3. Docker 运行
 
-> ⚠️ **运行前请先修改脚本里的具体设置**，两个脚本都含写死的本机配置：
+> **运行前请先修改脚本里的具体设置**：
 > - `build.sh`：镜像名 `IMAGE_NAME`、tag `TAG`、目标平台（`--platform`）。
 > - `docker_run_all.sh`：默认镜像 tag `DEFAULT_IMAGE_TAG`、运行目录 `BASE_DIR`、
 >   `input` 挂载路径，以及模型环境变量 `MODEL_API_URL` / `MODEL_API_KEY` / `MODEL_NAME`。
