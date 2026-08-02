@@ -26,6 +26,7 @@ from __future__ import annotations
 import os
 import re
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -181,11 +182,18 @@ def _run_solver(
     pred_mtime_before = pred_path.stat().st_mtime if pred_path.exists() else None
 
     t0 = time.time()
+    # solver.py 会 import pandas/duckdb/tools_v2 等: 必须用当前解释器 sys.executable
+    # (主进程跑在项目 venv 里, 依赖都装在这个 venv; 写死 'python3' 会落到系统 python
+    # 导致 ModuleNotFoundError), 并把项目源码目录加到 PYTHONPATH 让子进程能 import
+    # tools_v2.datasource_runtime. 与 zz_agent_v2.py 的兜底路径保持一致.
+    src_root = str(Path(__file__).resolve().parents[1])  # .../src/data_agent_baseline
+    env = dict(os.environ)
+    env["PYTHONPATH"] = src_root + os.pathsep + env.get("PYTHONPATH", "")
     try:
         proc = subprocess.run(
-            ["python3", "./workdir/solver.py"],
+            [sys.executable, "./workdir/solver.py"],
             cwd=task_dir,
-            env=os.environ,  # 继承父进程 env(含 PYTHONPATH), tb 折叠方案 A 生效
+            env=env,  # 当前 venv 解释器 + 注入 PYTHONPATH, 保证 pandas/tools_v2 可 import
             capture_output=True,
             text=True,
             timeout=timeout,

@@ -200,9 +200,12 @@ async def process_one_task(
 
         try:
             # general_tools.print_dir_permissions(task_temp_dir, task_out_dir, task_log_dir)
-            task_temp_dir.mkdir(exist_ok=True)
-            task_out_dir.mkdir(exist_ok=True)
-            task_log_dir.mkdir(exist_ok=True)
+            # parents=True: 父目录(temp_dir/output_base_dir/logs_base_dir)理应已在 main
+            # 里建好, 但带上 parents 可在父目录被中断/清理时自愈, 避免单个 task 因
+            # FileNotFoundError 整体崩溃.
+            task_temp_dir.mkdir(parents=True, exist_ok=True)
+            task_out_dir.mkdir(parents=True, exist_ok=True)
+            task_log_dir.mkdir(parents=True, exist_ok=True)
             general_tools.print_dir_permissions(task_temp_dir, task_out_dir, task_log_dir)
         except PermissionError as e:
             logger.error('ERROR: cannot create dirs for {}, skipping: {}', cur_task_id, e)
@@ -697,7 +700,7 @@ async def main(holdout_enable: bool = True, only_tasks: list[str] | None = None,
     # 这个目录与每个 task_temp_dir 平级, 在 LocalBackend(root_dir=task_dir) 之外,
     # agent 通过 read_file 也访问不到, 不会把自己的历史当作输入再喂回 context.
     logs_base_dir = temp_dir / 'logs'
-    logs_base_dir.mkdir(exist_ok=True)
+    logs_base_dir.mkdir(parents=True, exist_ok=True)
 
     all_task_ids = sorted([p.relative_to(input_base_dir) for p in input_base_dir.glob("task_*")])
 

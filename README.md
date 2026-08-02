@@ -44,7 +44,7 @@ export DEFAULT_MODEL_NAME="qwen3.5-35b-a3b"
 export INPUT_DIR="~/Documents/work/20260400-data-agent/phase2/input"
 export OUTPUT_DIR="~/Documents/work/20260400-data-agent/phase2/output_$(date +%Y%m%d_%H%M%S)"
 
-uv run python src/data_agent_baseline/zz_agent_v2.py
+uv run python src/data_agent_baseline/zz_agent_v2.py --max-parallel=4
 ```
 
 ### 3. Docker 运行
