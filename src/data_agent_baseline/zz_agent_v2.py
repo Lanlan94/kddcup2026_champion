@@ -118,10 +118,6 @@ from video.build_video_input import video_parts_for_task
 # 并行执行 task 的最大并发数, 通过 semaphore 限制
 MAX_PARALLEL_TASKS = 16  # 只影响本地, docker由dockerfile环境变量控制
 
-# 随机
-HOLDOUT_SEED = 42
-HOLDOUT_RATIO = 0.
-
 # pre-agent 多轮投票次数 (>=1, <=1 时不投票直接单轮)
 PRE_AGENT_VOTE_ROUNDS = 3
 
@@ -646,7 +642,7 @@ async def process_one_task(
 
 
 
-async def main(holdout_enable: bool = True, only_tasks: list[str] | None = None,
+async def main(only_tasks: list[str] | None = None,
                run_group: str = '', max_parallel: int = MAX_PARALLEL_TASKS):
 
 
@@ -716,17 +712,6 @@ async def main(holdout_enable: bool = True, only_tasks: list[str] | None = None,
             raise SystemExit(f'only-tasks: 没有任何 task 命中 {sorted(wanted)}, 退出')
         logger.info('only-tasks: 仅跑 {} 个 task: {}', len(kept), [p.name for p in kept])
         all_task_ids = kept
-        # 子集模式下默认禁用 holdout, 否则可能把指定 task 也随机跳掉.
-        if holdout_enable:
-            logger.info('only-tasks: 子集模式自动禁用 holdout')
-            holdout_enable = False
-
-    # 确定性随机跳过一批 task (计 0), 压低观测分; 反推真实分见 manifest.
-    if holdout_enable:
-        all_task_ids = general_tools.apply_holdout(
-            all_task_ids, HOLDOUT_RATIO, HOLDOUT_SEED,
-            temp_dir / 'holdout_manifest.json',
-        )
 
     semaphore = asyncio.Semaphore(max_parallel)
     logger.info('max parallel tasks: {}', max_parallel)
@@ -821,16 +806,9 @@ async def main(holdout_enable: bool = True, only_tasks: list[str] | None = None,
 if __name__ == "__main__":
     import argparse
 
-    def _str2bool(v: str) -> bool:
-        return str(v).lower() in ('1', 'true', 't', 'yes', 'y')
-
     # add_help=False: 不拦截 docker 镜像 CMD 里残留的 --help, 让它落入未知参数被忽略.
     # parse_known_args: 忽略未知参数, 行为与"没有 argparse"时一致, 不传则走默认值.
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument(
-        '--holdout-enable', type=_str2bool, default=False,
-        help='是否启用确定性 holdout (True/False, 默认 True)',
-    )
     parser.add_argument(
         '--only-tasks', type=str, default='',
         help='仅跑指定 task (逗号分隔, 如 "task_15,task_18"). 仅本地生效, docker 内忽略.',
@@ -859,5 +837,5 @@ if __name__ == "__main__":
     )
     args, _ = parser.parse_known_args()
     only_tasks = [t.strip() for t in args.only_tasks.split(',') if t.strip()] or None
-    asyncio.run(main(holdout_enable=args.holdout_enable, only_tasks=only_tasks,
+    asyncio.run(main(only_tasks=only_tasks,
                      run_group=args.run_group, max_parallel=args.max_parallel))

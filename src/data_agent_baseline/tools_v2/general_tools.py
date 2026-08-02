@@ -367,41 +367,6 @@ def build_model_nothink():
     return model_nothink
 
 
-def sample_holdout(ids, ratio: float, seed: int) -> set:
-    """从 ids 中确定性随机抽取一个子集. 同 ids/ratio/seed -> 同结果."""
-    import random
-
-    ids = sorted(ids)
-    k = round(len(ids) * ratio)
-    return set(random.Random(seed).sample(ids, k)) if k else set()
-
-
-def apply_holdout(task_ids, ratio: float, seed: int, manifest_path):
-    """确定性随机保留 task_ids 的一个子集, 其余跳过(计 0). 落盘 manifest 供反推真实分.
-
-    入参/返回均为 Path 列表(保持原顺序). 同 task_ids/ratio/seed -> 同结果.
-    """
-    import json
-
-    skipped = sample_holdout([p.name for p in task_ids], ratio, seed)
-    kept = [p for p in task_ids if p.name not in skipped]
-    keep_ratio = len(kept) / len(task_ids) if task_ids else 1.0
-    # docker 提交环境不落盘 manifest (避免泄露 holdout 信息), 本地调试才写出.
-    if not is_docker():
-        manifest_path.write_text(json.dumps({
-            'seed': seed,
-            'ratio': ratio,
-            'total': len(task_ids),
-            'kept': len(kept),
-            'skipped': sorted(skipped),
-            'keep_ratio': keep_ratio,
-            'note': '真实总分 ≈ 观测总分 / keep_ratio',
-        }, ensure_ascii=False, indent=2))
-    logger.info('holdout: 跳过 {}/{} task, keep_ratio={:.4f}',
-                len(skipped), len(task_ids), keep_ratio)
-    return kept
-
-
 if __name__ == '__main__':
     def _test_normalize_base_url():
         cases = [
