@@ -62,6 +62,9 @@ logs/
 tmp/
 .tmp/
 
+# ---- Local example/demo data ----
+public/
+
 # ---- Secrets / local config ----
 .env
 .env.*
